@@ -13,6 +13,7 @@
                     return;
                 }
             }
+
             if(highLightedIndex == -2) {
                 highLightedIndex = activeIndex;
             }
@@ -30,29 +31,35 @@
             .catch((error) => {
                 console.error("Could not send setTabHighlight message: ", error);
             });
-            const controlListener = (e) => {
-                if (e.key == "Control") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Control released: switching tabs: ");
-                    browser.runtime.sendMessage({ type: "switchTab", tab: tabs[highLightedIndex].id })
-                    .catch((error) => {
-                        console.error("Could not send switchTab message: ", error);
-                    });
-                    highLightedIndex = -2;
-                    document.removeEventListener("keyup", controlListener);
-                    listenerRunning = false;
-                }
-            };
-
-            if(!listenerRunning) {
-                document.addEventListener("keyup", controlListener);
-                listenerRunning = true;
-            }
         })
         .catch((error) => {
             console.error("Could not send getTabList message: ", error);
         });
+
+        const controlListener = (e) => {
+            if (e.key == "Control") {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Control released: switching tabs: ");
+                browser.runtime.sendMessage({ type: "getTabList" }).then((tabs2) => {
+                    browser.runtime.sendMessage({ type: "switchTab", tab: tabs2[highLightedIndex].id })
+                    .catch((error) => {
+                        console.error("Could not send switchTab message: ", error);
+                    });
+                    highLightedIndex = -2;
+                })
+                .catch((error) => {
+                    console.error("Could not send getTabList message: ", error);
+                });
+                document.removeEventListener("keyup", controlListener);
+                listenerRunning = false;
+            }
+        };
+
+        if(!listenerRunning) {
+            document.addEventListener("keyup", controlListener);
+            listenerRunning = true;
+        }
 	}
 
 	/* Listen for messages from background */
