@@ -17,11 +17,23 @@
 			},
 			"description": "Move tab selection forward"
 		},
-            "tabSelectionBackward": {
+        "tabSelectionBackward": {
 			"suggested_key": {
 				"default": "Ctrl+H"
 			},
 			"description": "Move tab selection backward"
+        },
+        "tabClose": {
+			"suggested_key": {
+				"default": "Ctrl+Y"
+			},
+			"description": "Close tab"
+        },
+        "tabDiscard": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+Y"
+			},
+			"description": "Discard tab"
         }
 	},
 

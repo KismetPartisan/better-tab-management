@@ -1,19 +1,33 @@
-var lastTabHighlighted = -2;
+var highlightedTab = -2;
 
 //Listens for commands, and passes them to content.js
 browser.commands.onCommand.addListener((command) => {
     browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
         if (tabs[0] && Number.isInteger(tabs[0].id) && tabs[0].id >= 0) {
             if (command === "tabSelectionForward") {
-                browser.tabs.sendMessage(tabs[0].id, { type: "tabSelectionForward", activeTab: tabs[0].id }).then(() => {})
+                browser.tabs.sendMessage(tabs[0].id, { type: "tabSelectionForward" })
                 .catch((error) => {
                     console.error("Could not send tabSelectionForward message: ", error);
                 });
             } else if (command === "tabSelectionBackward") {
-                browser.tabs.sendMessage(tabs[0].id, { type: "tabSelectionBackward", activeTab: tabs[0].id  }).then(() => {})
+                browser.tabs.sendMessage(tabs[0].id, { type: "tabSelectionBackward" })
                 .catch((error) => {
                     console.error("Could not send tabSelectionBackward message: ", error);
                 });
+            } else if (command === "tabClose") {
+                if(highlightedTab == -2) {
+                    closeTab(tabs[0]);
+                } else {
+                    closeTab(highlightedTab);
+                }
+            } else if (command === "tabDiscard") {
+                if(highlightedTab == -2) {
+                    discardTab(tabs[0]);
+                } else {
+                    discardTab(highlightedTab);
+                }
+            } else {
+                core.error("Command not recognized: ", command)
             }
         } else {
             console.error("Could not find active tab");
@@ -24,13 +38,58 @@ browser.commands.onCommand.addListener((command) => {
     });
 });
 
+function closeTab(tab) {
+    if(tab.pinned) {
+        discardTab(tab);
+    } else {
+        browser.tabs.remove(tab.id);
+    }
+    browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+        highlightedTab = -2;
+        browser.tabs.sendMessage(tabs[0].id, { type: "tabSelectionBackward" }).then(() => {})
+        .catch((error) => {
+            console.error("Could not send tabSelectionBackward message: ", error);
+        });
+    });
+}
+
+function discardTab(tab) {
+    if(tab.active) {
+        browser.tabs.query({ active: false, discarded: false, currentWindow: true }).then((loadedTabs) => {
+            var previousTab = loadedTabs.reduce((prev, current) => {
+                return prev.lastAccessed > current.lastAccessed ? prev : current;
+            });
+            browser.tabs.update(previousTab.id, { active: true });
+            browser.tabs.discard(tab.id);
+        })
+        .catch((error) => {
+            console.error("Error querying tabs: ", error);
+            sendResponse({ error: error.message });
+        });
+    } else {
+        browser.tabs.discard(tab.id);
+        browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+            browser.tabs.sendMessage(tabs[0].id, { type: "tabSelectionBackward" })
+            .catch((error) => {
+                console.error("Could not send tabSelectionBackward message: ", error);
+            });
+        })
+        .catch((error) => {
+            console.error("Error querying tabs: ", error);
+            sendResponse({ error: error.message });
+        });
+    }
+}
+
 //Handles incoming messages from content.js
 browser.runtime.onMessage.addListener((message, _, sendResponse) => {
 	if (message.type === "getTabList") {
 		browser.tabs.query({ currentWindow: true }).then((tabs) => {
             sendResponse(
                 tabs.map((tab) => ({
-                    id: tab.id
+                    id: tab.id,
+                    active: tab.active,
+                    pinned: tab.pinned
                 })),
             );
         })
@@ -40,20 +99,20 @@ browser.runtime.onMessage.addListener((message, _, sendResponse) => {
         });
 		return true;
     } else if (message.type === "setTabHighlight") {
-        browser.tabs.update(message.index, { active: false, highlighted: true }) //TODO: figure out how to move to top of if (to prevent tab flickering) without breaking things
+        browser.tabs.update(message.tab.id, { active: false, highlighted: true })
         .catch((error) => {
             console.error("Could not highlight tab: ", error);
             sendResponse({ error: error.message });
         });
-        if(lastTabHighlighted != -2 && lastTabHighlighted != message.activeTab) {
-            browser.tabs.update(lastTabHighlighted, { active: false, highlighted: false })
+        if(highlightedTab != -2 && highlightedTab.id != message.activeTab) {
+            browser.tabs.update(highlightedTab.id, { active: false, highlighted: false })
             .catch((error) => {
                 console.error("Could not highlight tab: ", error);
             });
         }
-        lastTabHighlighted = message.index;
+        highlightedTab = message.tab;
 	} else if (message.type === "switchTab") {
-        lastTabHighlighted = -2;
+        highlightedTab = -2;
 		const id = message.tab;
 		browser.tabs.get(id).then((tab) => {
             if (!tab || !Number.isInteger(tab.windowId)) {

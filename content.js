@@ -2,10 +2,10 @@
     var highLightedIndex = -2;
     var listenerRunning = false;
 
-	function tabSelection(relativeIndex, activeTab) {
+	function tabSelection(relativeIndex) {
         browser.runtime.sendMessage({ type: "getTabList" }).then((tabs) => {
             for(let i = 0; i < tabs.length; i++) {
-                if(activeTab == tabs[i].id) {
+                if(tabs[i].active) {
                     var activeIndex = i;
                     break;
                 } else if(i == tabs.length-1) {
@@ -26,14 +26,19 @@
             }
 
             console.log(highLightedIndex);
-            browser.runtime.sendMessage({ type: "setTabHighlight", index:tabs[highLightedIndex].id, activeTab: activeTab });
-
+            browser.runtime.sendMessage({ type: "setTabHighlight", tab: tabs[highLightedIndex], activeTab: tabs[activeIndex].id })
+            .catch((error) => {
+                console.error("Could not send setTabHighlight message: ", error);
+            });
             const controlListener = (e) => {
                 if (e.key == "Control") {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log("Control released: switching tabs");
-                    browser.runtime.sendMessage({ type: "switchTab", tab: tabs[highLightedIndex].id });
+                    console.log("Control released: switching tabs: ");
+                    browser.runtime.sendMessage({ type: "switchTab", tab: tabs[highLightedIndex].id })
+                    .catch((error) => {
+                        console.error("Could not send switchTab message: ", error);
+                    });
                     highLightedIndex = -2;
                     document.removeEventListener("keyup", controlListener);
                     listenerRunning = false;
@@ -44,6 +49,9 @@
                 document.addEventListener("keyup", controlListener);
                 listenerRunning = true;
             }
+        })
+        .catch((error) => {
+            console.error("Could not send getTabList message: ", error);
         });
 	}
 
@@ -54,7 +62,7 @@
 		} else if (message.type === "tabSelectionBackward") {
 			tabSelection(-1, message.activeTab);
 		}
-	});
+    });
 })();
 
 
