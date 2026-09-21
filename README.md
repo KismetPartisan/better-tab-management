@@ -4,11 +4,11 @@ Allows for better tab management using the keyboard in zen browser and firefox
 
 ### Features:
 * Select tabs using ctrl+h and ctrl+i
+* Move tabs using ctrl+shift+h and ctrl+shift+i
 * Close tabs using ctrl+y
 * Discard tabs using ctrl+shift+y
   
 ### Planned features:
-* Move tabs using ctrl+shift+h and ctrl+shift+i
 
 ### Potential features:
 * Create/move tab groups

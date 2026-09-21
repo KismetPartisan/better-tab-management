@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Better Tab Management",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Use ctrl+h and ctrl+l to cycle through your tabs, tabs will only load once you release ctrl, allowing you to skip discarded tabs without loading them",
 
 	"permissions": [
@@ -20,6 +20,18 @@
         "tabSelectionBackward": {
 			"suggested_key": {
 				"default": "Ctrl+H"
+			},
+			"description": "Move tab selection backward"
+        },
+		"tabMoveForward": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+L"
+			},
+			"description": "Move tab selection forward"
+		},
+        "tabMoveBackward": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+H"
 			},
 			"description": "Move tab selection backward"
         },

@@ -14,18 +14,14 @@ browser.commands.onCommand.addListener((command) => {
                 .catch((error) => {
                     console.error("Could not send tabSelectionBackward message: ", error);
                 });
+            } else if (command === "tabMoveForward") {
+                moveTab(tabs[0], 1);
+            } else if (command === "tabMoveBackward") {
+                moveTab(tabs[0], -1);
             } else if (command === "tabClose") {
-                if(highlightedTab == -2) {
-                    closeTab(tabs[0]);
-                } else {
-                    closeTab(highlightedTab);
-                }
+                highlightedTab == -2 ? closeTab(tabs[0]) : closeTab(highlightedTab);
             } else if (command === "tabDiscard") {
-                if(highlightedTab == -2) {
-                    discardTab(tabs[0]);
-                } else {
-                    discardTab(highlightedTab);
-                }
+                highlightedTab == -2 ? discardTab(tabs[0]) : discardTab(highlightedTab);
             } else {
                 core.error("Command not recognized: ", command)
             }
@@ -37,6 +33,34 @@ browser.commands.onCommand.addListener((command) => {
         console.error("Error querying tabs:", error);
     });
 });
+
+function moveTab(tab, relativeIndex) {
+    if(tab.pinned) {
+        browser.tabs.query({ pinned: true, currentWindow: true }).then((pinnedTabs) => {
+            if(tab.index == pinnedTabs.length - 1 && relativeIndex > 0) {
+                browser.tabs.move(tab.id, { index: 0 });
+            } else {
+                browser.tabs.move(tab.id, { index: tab.index + relativeIndex }).then((response) => {
+                    if(tab.index == response[0].index && relativeIndex < 0) {
+                        browser.tabs.move(tab.id, { index: pinnedTabs.length - 1 });
+                    }
+                });
+            }
+        });
+    } else {
+        browser.tabs.query({ currentWindow: true }).then((tabs) => {
+            browser.tabs.query({ pinned: true, currentWindow: true }).then((pinnedTabs) => {
+                if(tab.index == tabs.length && relativeIndex > 0) {
+                    browser.tabs.move(tab.id, { index: pinnedTabs.length + 1 });
+                } else if(tab.index == pinnedTabs.length + 1 && relativeIndex < 0) {
+                    browser.tabs.move(tab.id, { index: tabs.length });
+                } else {
+                    browser.tabs.move(tab.id, { index: tab.index + relativeIndex });
+                }
+            });
+        });
+    }
+}
 
 function closeTab(tab) {
     if(tab.pinned) {
@@ -83,11 +107,12 @@ function discardTab(tab) {
 
 //Handles incoming messages from content.js
 browser.runtime.onMessage.addListener((message, _, sendResponse) => {
-	if (message.type === "getTabList") {
+    if (message.type === "getTabList") {
 		browser.tabs.query({ currentWindow: true }).then((tabs) => {
             sendResponse(
                 tabs.map((tab) => ({
                     id: tab.id,
+                    index: tab.index,
                     active: tab.active,
                     pinned: tab.pinned
                 })),
