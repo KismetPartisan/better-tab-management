@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "Better Tab Management",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Use ctrl+h and ctrl+l to cycle through your tabs, tabs will only load once you release ctrl, allowing you to skip discarded tabs without loading them",
 
 	"permissions": [
