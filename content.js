@@ -1,6 +1,7 @@
 (async () => {
     var highLightedId = -2;
     var listenerRunning = false;
+    var title = document.title;
 
 	function switchListener(highlightedTab) {
         //document.title="⁠aa";
@@ -18,6 +19,7 @@
                 });
                 document.removeEventListener("keyup", controlListener);
                 listenerRunning = false;
+                makeTabVisible();
             }
         };
 
@@ -27,10 +29,32 @@
         }
 	}
 
+    function makeTabInvisible() {
+        if (!document.title.startsWith("⁠")) {
+            document.title="⁠"+title;
+        }
+        /*if (!document.title.startsWith("A")) {
+            document.title="A"+title;
+        }*/
+    }
+
+    function makeTabVisible() {
+        if (document.title.startsWith("⁠")) {
+            document.title = document.title.slice(1);
+        }
+        /*if (document.title.startsWith("A")) {
+            document.title = document.title.slice(1);
+        }*/
+    }
+
 	/* Listen for messages from background */
 	browser.runtime.onMessage.addListener((message) => {
 		if (message.type === "switchListener") {
 			switchListener(message.highlightedTab);
+        } else if (message.type === "makeTabInvisible") {
+            makeTabInvisible();
+        } else if (message.type === "makeTabVisible") {
+            makeTabVisible();
         }
     });
 })();

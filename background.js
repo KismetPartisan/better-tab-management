@@ -30,11 +30,17 @@ browser.commands.onCommand.addListener((command) => {
 });
 
 function highLightTab(tab, activeTab) {
+    if(tab.id != activeTab.id) {
+        browser.tabs.sendMessage(activeTab.id, { type: "makeTabInvisible" });
+    } else {
+        browser.tabs.sendMessage(activeTab.id, { type: "makeTabVisible" });
+    }
     browser.tabs.update(tab.id, { active: false, highlighted: true })
     .catch((error) => {
         console.error("Could not highlight tab: ", error);
     });
     if(highlightedTab != -2 && highlightedTab.id != activeTab.id) {
+        browser.tabs.sendMessage(highlightedTab.id, { type: "makeTabVisible" });
         browser.tabs.update(highlightedTab.id, { active: false, highlighted: false })
         .catch((error) => {
             console.error("Could not highlight tab: ", error);
