@@ -1,4 +1,4 @@
-var highlightedTab = -2;
+var highlightedTab = undefined;
 var highlightedIndex = -2;
 
 //Listens for commands, and passes them to content.js
@@ -10,15 +10,15 @@ browser.commands.onCommand.addListener((command) => {
             } else if (command === "tabSelectionBackward") {
                 moveSelection(-1);
             } else if (command === "tabMoveForward") {
-                highlightedTab == -2 ? moveTab(tabs[0], 1) : moveTab(highlightedTab, 1);
+                !highlightedTab ? moveTab(tabs[0], 1) : moveTab(highlightedTab, 1);
             } else if (command === "tabMoveBackward") {
-                highlightedTab == -2 ? moveTab(tabs[0], -1) : moveTab(highlightedTab, -1);
+                !highlightedTab ? moveTab(tabs[0], -1) : moveTab(highlightedTab, -1);
             } else if (command === "tabClose") {
-                highlightedTab == -2 ? closeTab(tabs[0]) : closeTab(highlightedTab);
+                !highlightedTab ? closeTab(tabs[0]) : closeTab(highlightedTab);
             } else if (command === "tabDiscard") {
-                highlightedTab == -2 ? discardTab(tabs[0]) : discardTab(highlightedTab);
+                !highlightedTab ? discardTab(tabs[0]) : discardTab(highlightedTab);
             } else {
-                core.error("Command not recognized: ", command)
+                console.error("Command not recognized: ", command)
             }
         } else {
             console.error("Could not find active tab");
@@ -39,7 +39,7 @@ function highLightTab(tab, activeTab) {
     .catch((error) => {
         console.error("Could not highlight tab: ", error);
     });
-    if(highlightedTab != -2 && highlightedTab.id != activeTab.id) {
+    if(highlightedTab && highlightedTab.id != activeTab.id) {
         browser.tabs.sendMessage(highlightedTab.id, { type: "makeTabVisible" });
         browser.tabs.update(highlightedTab.id, { active: false, highlighted: false })
         .catch((error) => {
@@ -98,16 +98,16 @@ function moveTab(tab, relativeIndex) {
             if(tab.index == pinnedTabs.length - 1 && relativeIndex > 0) {
                 newIndex = 0;
                 browser.tabs.move(tab.id, { index: newIndex });
-                if(highlightedTab != -2) { highlightedTab.index = newIndex; highlightedIndex = newIndex; }
+                if(highlightedTab) { highlightedTab.index = newIndex; highlightedIndex = newIndex; }
                 console.log(newIndex);
             } else {
                 browser.tabs.move(tab.id, { index: tab.index + relativeIndex }).then((response) => {
                     if(tab.index == response[0].index && relativeIndex < 0) {
                         newIndex = pinnedTabs.length - 1;
-                        if(highlightedTab != -2) { highlightedTab.index = newIndex; highlightedIndex = newIndex; }
+                        if(highlightedTab) { highlightedTab.index = newIndex; highlightedIndex = newIndex; }
                     } else {
                         newIndex = tab.index + relativeIndex;
-                        if(highlightedTab != -2) { highlightedTab.index = highlightedTab.index + relativeIndex; highlightedIndex = highlightedIndex + relativeIndex; }
+                        if(highlightedTab) { highlightedTab.index = highlightedTab.index + relativeIndex; highlightedIndex = highlightedIndex + relativeIndex; }
                     }
                         browser.tabs.move(tab.id, { index: newIndex });
                 });
@@ -119,13 +119,13 @@ function moveTab(tab, relativeIndex) {
                 if(tab.index == tabs.length && relativeIndex > 0) {
                     console.log("TEST");
                     newIndex = pinnedTabs.length + 1;
-                    if(highlightedTab != -2) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
+                    if(highlightedTab) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
                 } else if(tab.index == pinnedTabs.length + 1 && relativeIndex < 0) {
                     newIndex = tabs.length;
-                    if(highlightedTab != -2) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
+                    if(highlightedTab) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
                 } else {
                     newIndex = tab.index + relativeIndex;
-                    if(highlightedTab != -2) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
+                    if(highlightedTab) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
                 }
                 browser.tabs.move(tab.id, { index: newIndex });
                 console.log(newIndex);
@@ -141,7 +141,7 @@ function closeTab(tab) {
         browser.tabs.remove(tab.id);
     }
     browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
-        highlightedTab = -2;
+        highlightedTab = undefined;
         moveSelection(-1);
     });
 }
@@ -157,7 +157,6 @@ function discardTab(tab) {
         })
         .catch((error) => {
             console.error("Error querying tabs: ", error);
-            sendResponse({ error: error.message });
         });
     } else {
         browser.tabs.discard(tab.id);
@@ -166,7 +165,6 @@ function discardTab(tab) {
         })
         .catch((error) => {
             console.error("Error querying tabs: ", error);
-            sendResponse({ error: error.message });
         });
     }
 }
@@ -174,7 +172,7 @@ function discardTab(tab) {
 //Handles incoming messages from content.js
 browser.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === "switchTab") {
-        highlightedTab = -2;
+        highlightedTab = undefined;
         highlightedIndex = -2;
 		const id = message.tab;
 		browser.tabs.get(id).then((tab) => {

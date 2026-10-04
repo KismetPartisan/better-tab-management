@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@types/firefox-webext-browser": "^143.0.1"
+  },
+  "dependencies": {
+    "eslint": "^10.12.0"
   }
 }
