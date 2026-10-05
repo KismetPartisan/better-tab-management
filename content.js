@@ -1,11 +1,9 @@
 (async () => {
-    var highLightedId = -2;
+    var highlightedId = undefined;
     var listenerRunning = false;
     var title = document.title;
 
 	function switchListener(highlightedTab) {
-        //document.title="⁠aa";
-
         highlightedId = highlightedTab.id;
 
         const controlListener = (e) => {
@@ -33,18 +31,12 @@
         if (!document.title.startsWith("⁠")) {
             document.title="⁠"+title;
         }
-        /*if (!document.title.startsWith("A")) {
-            document.title="A"+title;
-        }*/
     }
 
     function makeTabVisible() {
         if (document.title.startsWith("⁠")) {
             document.title = document.title.slice(1);
         }
-        /*if (document.title.startsWith("A")) {
-            document.title = document.title.slice(1);
-        }*/
     }
 
 	/* Listen for messages from background */

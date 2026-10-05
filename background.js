@@ -1,5 +1,5 @@
 var highlightedTab = undefined;
-var highlightedIndex = -2;
+var highlightedIndex = undefined;
 
 //Listens for commands, and passes them to content.js
 browser.commands.onCommand.addListener((command) => {
@@ -29,7 +29,7 @@ browser.commands.onCommand.addListener((command) => {
     });
 });
 
-function highLightTab(tab, activeTab) {
+function highlightTab(tab, activeTab) {
     if(tab.id != activeTab.id) {
         browser.tabs.sendMessage(activeTab.id, { type: "makeTabInvisible" });
     } else {
@@ -61,8 +61,8 @@ function moveSelection(relativeIndex) {
             }
         }
 
-        browser.tabs.sendMessage(tabs[activeIndex].id, { type: "PING" }).then((response) => {
-            if(highlightedIndex == -2) {
+        browser.tabs.sendMessage(tabs[activeIndex].id, { type: "PING" }).then(() => {
+            if(highlightedIndex === undefined) {
                 highlightedIndex = activeIndex;
             }
             highlightedIndex += relativeIndex;
@@ -75,7 +75,7 @@ function moveSelection(relativeIndex) {
             }
 
             console.log(highlightedIndex);
-            highLightTab(tabs[highlightedIndex], tabs[activeIndex]);
+            highlightTab(tabs[highlightedIndex], tabs[activeIndex]);
 
             browser.tabs.sendMessage(tabs[activeIndex].id, { type: "switchListener", highlightedTab: tabs[highlightedIndex] })
             .catch((error) => {
@@ -117,7 +117,6 @@ function moveTab(tab, relativeIndex) {
         browser.tabs.query({ currentWindow: true }).then((tabs) => {
             browser.tabs.query({ pinned: true, currentWindow: true }).then((pinnedTabs) => {
                 if(tab.index == tabs.length && relativeIndex > 0) {
-                    console.log("TEST");
                     newIndex = pinnedTabs.length + 1;
                     if(highlightedTab) { highlightedTab.index = newIndex; highlightedIndex = newIndex-1; }
                 } else if(tab.index == pinnedTabs.length + 1 && relativeIndex < 0) {
@@ -139,11 +138,11 @@ function closeTab(tab) {
         discardTab(tab);
     } else {
         browser.tabs.remove(tab.id);
+        if(!tab.active) {
+            highlightedTab = undefined;
+            moveSelection(-1);
+        }
     }
-    browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
-        highlightedTab = undefined;
-        moveSelection(-1);
-    });
 }
 
 function discardTab(tab) {
@@ -160,12 +159,7 @@ function discardTab(tab) {
         });
     } else {
         browser.tabs.discard(tab.id);
-        browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
-            moveSelection(-1);
-        })
-        .catch((error) => {
-            console.error("Error querying tabs: ", error);
-        });
+        moveSelection(-1);
     }
 }
 
@@ -173,7 +167,7 @@ function discardTab(tab) {
 browser.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message.type === "switchTab") {
         highlightedTab = undefined;
-        highlightedIndex = -2;
+        highlightedIndex = undefined;
 		const id = message.tab;
 		browser.tabs.get(id).then((tab) => {
             if (!tab || !Number.isInteger(tab.windowId)) {
